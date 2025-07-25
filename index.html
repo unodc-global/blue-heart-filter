@@ -54,7 +54,36 @@
     const downloadBtn = document.getElementById("download");
 
     const overlay = new Image();
-    overlay.src = "logo.png"; // Your full-size 1080x1080 PNG overlay
+    overlay.src = "logo.png"; // Must be 1080x1080 transparent PNG
+
+    function drawFinalImage(userImg) {
+      const size = 1080;
+      canvas.width = canvas.height = size;
+      ctx.clearRect(0, 0, size, size);
+
+      // Crop user image to a square
+      const minSide = Math.min(userImg.width, userImg.height);
+      const cropX = (userImg.width - minSide) / 2;
+      const cropY = (userImg.height - minSide) / 2;
+
+      // Draw the user's image (cover full canvas)
+      ctx.drawImage(userImg, cropX, cropY, minSide, minSide, 0, 0, size, size);
+
+      // Add bottom gradient for readability
+      const gradientHeight = 300;
+      const gradient = ctx.createLinearGradient(0, size - gradientHeight, 0, size);
+      gradient.addColorStop(0, 'rgba(0,0,0,0)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, size - gradientHeight, size, gradientHeight);
+
+      // Draw the overlay logo (on top, stays sharp)
+      ctx.drawImage(overlay, 0, 0, size, size);
+
+      // Show the preview and download button
+      canvas.style.display = "block";
+      downloadBtn.style.display = "inline-block";
+    }
 
     upload.addEventListener("change", function () {
       const file = this.files[0];
@@ -64,33 +93,10 @@
       reader.onload = function (e) {
         const userImg = new Image();
         userImg.onload = function () {
-          const size = 1080;
-          canvas.width = canvas.height = size;
-          ctx.clearRect(0, 0, size, size);
-
-          // Crop uploaded image to square
-          const minSide = Math.min(userImg.width, userImg.height);
-          const cropX = (userImg.width - minSide) / 2;
-          const cropY = (userImg.height - minSide) / 2;
-
-          // Draw cropped & resized image
-          ctx.drawImage(
-            userImg,
-            cropX, cropY, minSide, minSide,
-            0, 0, size, size
-          );
-
-          // Draw overlay
           if (overlay.complete) {
-            ctx.drawImage(overlay, 0, 0, size, size);
-            canvas.style.display = "block";
-            downloadBtn.style.display = "inline-block";
+            drawFinalImage(userImg);
           } else {
-            overlay.onload = () => {
-              ctx.drawImage(overlay, 0, 0, size, size);
-              canvas.style.display = "block";
-              downloadBtn.style.display = "inline-block";
-            };
+            overlay.onload = () => drawFinalImage(userImg);
           }
         };
         userImg.src = e.target.result;
@@ -101,20 +107,15 @@
     downloadBtn.addEventListener("click", function () {
       const imageDataURL = canvas.toDataURL("image/png");
 
-      // Open in new tab (mobile users can long-press to save)
-      const newTab = window.open();
-      newTab.document.write('<img src="' + imageDataURL + '" style="width:100%">');
-
-      // Also trigger download (desktop)
+      // Trigger direct download
       const link = document.createElement("a");
       link.download = "coracao-azul.png";
       link.href = imageDataURL;
       link.click();
 
-      // Alert for users
-      setTimeout(() => {
-        alert("Image created! On your phone, press on the open image and select 'Save to Gallery'.");
-      }, 300);
+      // Open in new tab for mobile saving
+      const newTab = window.open();
+      newTab.document.write('<img src="' + imageDataURL + '" style="width:100%">');
     });
   </script>
 
